@@ -1,0 +1,1285 @@
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: addme.php
+*/
+    session_start();
+    error_reporting(E_ALL ^ E_NOTICE); 
+
+    // Include the SQL DB class
+    require_once 'mySqlIO.class.php';
+
+    error_log("profile - URL cid is -> " . $_GET['cid'], 0);
+
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU Add Class Registration Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+
+<?php
+     // Logic to read the currently logged in user and display their profile
+     $cid = $_GET['cid'];
+
+     // Constants
+     define("HOST_NAME", "localhost");
+     define("DB_USER", "myUser");
+     define("DB_PASS", "myPass@CST499!");
+
+     // Get data into local variables
+     $localEmail = $_SESSION['loggedUser'];
+
+     // Connect to the DB
+     $dbObj = new mySqlIO(HOST_NAME, DB_USER, DB_PASS);
+     error_log("profile - Called mySqlIO", 0);
+
+     // Get the connection handle
+     $con = $dbObj->getConnection();
+     error_log("profile - Called getConn", 0);
+
+     // Build the INSERT
+     $sql = "SELECT id FROM classRegister.tblUser WHERE email = '" . $localEmail . "';";
+
+     // Execute the SELECT
+     $dbObj->executeSelectQuery($con, $sql);
+     error_log("profile - Called execSelect", 0);
+     error_log("profile - id = " . $_SESSION['col0'], 0);
+
+     $sqlAdd = "INSERT INTO tblUserRegisteredClasses VALUES ('" . $_SESSION['col0'] . "', '" . $cid . "', '1');";
+     error_log("Register user ->" . $sqlAdd, 0);
+
+     // Execute the SELECT
+     $dbObj->executeExec($con, $sqlAdd);
+     error_log("profile - Called execExec", 0);
+
+     // If we have a row, the email/password are good
+     if (isset($_SESSION['count']) && $_SESSION['count']) {
+         error_log("profile - Return to profile.php and show user profile", 0);
+     } else {
+         $_SESSION['message'] = 'Login failed. Invalid email address or password';
+         error_log("profile - Return error message to profile.php", 0);
+     }
+
+?>
+<div class="container text-center">
+    <h3>RozU Add Class Registration Page</h3>
+    <br/>
+    <br/>
+    <p>Now registered for class</p>
+</div>
+
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="./index.php">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: classOffered.php
+*/
+    session_start();
+    error_reporting(E_ALL ^ E_NOTICE); 
+
+    // Include the SQL DB class
+    require_once 'mySqlIO.class.php';
+
+    error_log("profile - Session user id is -> " . $_SESSION['loggedUser'], 0);
+
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU Classes Offered Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style type="text/css">
+        table {
+            margin: 8px;
+        }
+        th {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: .7em;
+            background: #666;
+            color: #FFF;
+            padding: 4px 10px;
+            border-collapse: separate;
+            border: 2px solid #000;
+        }
+        td {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: .7em;
+            padding: 4px 10px;
+            border: 2px solid #000;
+        }
+    </style>
+</head>
+
+<body>
+
+<?php
+    // Logic to read the currently logged in user and display their profile
+
+     // Constants
+     define("HOST_NAME", "localhost");
+     define("DB_USER", "myUser");
+     define("DB_PASS", "myPass@CST499!");
+
+     // Connect to the DB
+     $dbObj = new mySqlIO(HOST_NAME, DB_USER, DB_PASS);
+     error_log("profile - Called mySqlIO", 0);
+
+     // Get the connection handle
+     $con = $dbObj->getConnection();
+     error_log("profile - Called getConn", 0);
+
+     $sqlRegistered =  "
+SELECT s4.courseId, s4.courseName, s1.creditHours, s1.maxStudent, s1.preReq, s1.semester, s5.teacherName, s1.uniqueKeyId
+FROM (SELECT uniqueKeyId, tblCOcourseId, tblCOteacherId, creditHours, maxStudent, preReq, semester FROM tblCoursesOffered) AS S1
+JOIN (SELECT courseId, courseName FROM tblCourse) AS S4
+JOIN (SELECT teacherId, teacherName FROM tblTeacher) AS S5
+ON s1.tblCOcourseId = s4.courseId AND s1.tblCOteacherId = s5.teacherid
+ORDER BY s4.courseId ASC;
+";
+
+     // Execute the INSERT
+     $dbObj->executeQuery($con, $sqlRegistered);
+     error_log("profile - Called execQuery", 0);
+
+     // If we have a row, the email/password are good
+     if (isset($_SESSION['count']) && $_SESSION['count']) {
+         error_log("profile - Return to profile.php and show user profile", 0);
+     } else {
+         $_SESSION['message'] = 'Login failed. Invalid email address or password';
+         error_log("profile - Return error message to profile.php", 0);
+     }
+
+?>
+<div class="container text-center">
+    <h3>Currently Offered Classes Page</h3>
+</div>
+
+<table>
+    </br>
+    </br>
+    <tr>
+        <th>--- Course Id ---</th>
+        <th>--- Course Name ---</th>
+        <th>--- Credit Hours ---</th>
+        <th>--- Max Students ---</th>
+        <th>--- Pre-requisites ---</th>
+        <th>--- Semester ---</th>
+        <th>--- Teacher Name ---</th>
+    </tr>
+<?php
+      // Logic to read the user registered classes
+
+      // Get the connection handle
+      $res = $dbObj->getResult();
+      error_log("profile - Called getResult", 0);
+
+      // Count the number of columns in the result set
+      $colCount = $res->columnCount();
+      // Return number of rows
+      $rowCount = $res->rowCount();
+
+      if ($rowCount < 1) {
+          echo "<tr>";
+          echo "<td>None registered</td>";
+          echo "</tr>";
+      } else {
+          while ($rowCount > 0) {
+              echo "<tr>";
+
+              // Return next row as an array indexed by both column name and number
+              $dataArray = $res->fetch();
+              $colNum = 0;
+              $courseId = $dataArray[7];
+              while ($colNum < ($colCount-1)) {
+                  if ($colNum==0) {
+                      echo "<td><a href=\"./addme.php?cid=" . $courseId . "\">" . $dataArray[$colNum] . "</a></td>";
+                      error_log("<td><a href=\"./addme.php?cid=" . $courseId . "\">" . $dataArray[$colNum] . "</a></td>", 0);
+                  } else {
+                      echo "<td>" . $dataArray[$colNum] . "</td>";
+                      error_log("<td>" . $dataArray[$colNum] . "</td>", 0);
+                  }
+                  $colNum++;
+              }
+              echo "</tr>";
+              $rowCount--;
+          }
+      }
+?>
+</table>
+
+<nav class="navbar navbar-default">
+    </br>
+    </br>
+    </br>
+    <div class="container-fluid">
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="./index.php">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: delme.php
+*/
+    session_start();
+    error_reporting(E_ALL ^ E_NOTICE); 
+
+    // Include the SQL DB class
+    require_once 'mySqlIO.class.php';
+
+    error_log("profile - URL cid is -> " . $_GET['cid'], 0);
+
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU Delete Class Registration Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+
+<?php
+     // Logic to read the currently logged in user and display their profile
+     $cid = $_GET['cid'];
+
+     // Constants
+     define("HOST_NAME", "localhost");
+     define("DB_USER", "myUser");
+     define("DB_PASS", "myPass@CST499!");
+
+     // Get data into local variables
+     $localEmail = $_SESSION['loggedUser'];
+
+     // Connect to the DB
+     $dbObj = new mySqlIO(HOST_NAME, DB_USER, DB_PASS);
+     error_log("profile - Called mySqlIO", 0);
+
+     // Get the connection handle
+     $con = $dbObj->getConnection();
+     error_log("profile - Called getConn", 0);
+
+     // Build the INSERT
+     $sql = "SELECT id FROM classRegister.tblUser WHERE email = '" . $localEmail . "';";
+
+     // Execute the SELECT
+     $dbObj->executeSelectQuery($con, $sql);
+     error_log("profile - Called execSelect", 0);
+     error_log("profile - id = " . $_SESSION['col0'], 0);
+
+     $sqlDelete = "DELETE from tblUserRegisteredClasses where tblUserId = '" . $_SESSION['col0'] . "' AND tblClassesOfferedUniqueKeyId = '" . $cid . "';";
+     error_log("Register user ->" . $sqlDelete, 0);
+
+     // Execute the SELECT
+     $dbObj->executeExec($con, $sqlDelete);
+     error_log("profile - Called execExec", 0);
+
+     // If we have a row, the email/password are good
+     if (isset($_SESSION['count']) && $_SESSION['count']) {
+         error_log("profile - Return to profile.php and show user profile", 0);
+     } else {
+         $_SESSION['message'] = 'Login failed. Invalid email address or password';
+         error_log("profile - Return error message to profile.php", 0);
+     }
+
+?>
+<div class="container text-center">
+    <h3>RozU Delete Class Registration Page</h3>
+    <br/>
+    <br/>
+    <p>Now deregistered for class</p>
+</div>
+
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="./index.php">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: index.php
+*/
+session_start();
+error_reporting(E_ALL ^ E_NOTICE);
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU Class Registration Landing Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+<!--
+       This is the assignment details
+-->
+<div class="container">
+    <h1>CST499 Week 4 - For your paper this week, you will need to do the following:</h1>
+    <p></p>
+    <p></p>
+    <li>
+        Create your tables within the MySQL database.
+    </li>
+    <li>
+        Connect your pages to the backend database.
+    </li>
+    <li>
+        Create the register for classes.
+    </li>
+    <li>
+        List classes you are registered for.
+    </li>
+    <li>
+        Add more courses to your semester.
+    </li>
+    <li>
+        Delete classes from your schedule.
+    </li>
+
+    </ul><br/>
+    <br/>
+</div>
+<!--
+       This is the assignment
+-->
+<div class="container text-center">
+    <h3>RozU Class Registration Landing Page</h3>
+</div>
+
+<nav class="navbar bg-primary" data-bs-theme="dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Landing Page Links</a>
+        <div  id="navbarText">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <?php
+if (isset($_SESSION['message']) && $_SESSION['message']) {
+    // This logic builds the menu with Logout and Profile options
+    echo '<li class="nav-item">
+              <a class="nav-link" href="./profile.php">Profile</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="./userClasses.php">User Classes</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="./classOffered.php">Classes Offered</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="./logout.php">Logout</a>
+          </li>
+          ';
+} else {
+    // This logic builds the menu with Login and Register options
+    echo '<li class="nav-item">
+              <a class="nav-link" href="./login.php">Login</a>
+          </li>
+          <li class="nav-item">
+              <a class="nav-link" href="./register.php">Registration</a>
+          </li>';
+
+}
+                ?>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: login.php
+*/
+session_start();
+$message = '';
+error_reporting(E_ALL ^ E_NOTICE);
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU Class Registration Login Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+
+<!--
+       This is the assignment
+-->
+<div class="container text-center">
+    <h3>RozU Class Registration Login Page</h3>
+</div>
+
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="./index.php">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<?php
+error_log("Checking if just entering or returning from login validation", 0);
+error_log("Session[message] = " . $_SESSION['message'], 0);
+if (isset($_SESSION['message']) && $_SESSION['message']) {
+    echo '<p class="notification">' . $_SESSION['message'] . '</p>';
+    unset($_SESSION['message']);
+}
+?>
+<form class="registerInputFields" action="loginUserValidation.php" method="post">
+    <div>
+        <label for="email">eMail Address: *</label>
+        <input type="text" name="email" required><br/>
+    </div>
+    <div>
+        <label for="password">Password: *</label>
+        <input type="password" name="password" required><br/>
+    </div>
+    <br/><label>* = Required field</label><br/><br/>
+
+    <button type="Submit" name="loginUser" value="Login">Login user</button>
+</form>
+
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: loginUserValidation.php
+*/
+
+session_start();
+
+// Include the SQL DB class
+require_once 'mySqlIO.class.php';
+
+error_log("loginUserValidation - Check \$_POST input", 0);
+
+if (isset($_POST['loginUser']) && $_POST['loginUser'] == 'Login') {
+    // Constants
+    define("HOST_NAME", "localhost");
+    define("DB_USER", "myUser");
+    define("DB_PASS", "myPass@CST499!");
+
+    // Get data into local variables
+    $localEmail = $_POST['email'];
+    $localPassword = $_POST['password'];
+
+    error_log("email = " . $localEmail, 0);
+    error_log("pass  = " . $localPassword, 0);
+
+    // Connect to the DB
+    $dbObj = new mySqlIO(HOST_NAME, DB_USER, DB_PASS);
+    error_log("Called mySqlIO", 0);
+
+    // Get the connection handle
+    $con = $dbObj->getConnection();
+    error_log("Called getConn", 0);
+
+    // Build the INSERT
+    $sql = "SELECT firstName,lastName FROM classRegister.tblUser WHERE email = '" . 
+        $localEmail . "' and password = '" . $localPassword . "';";
+
+    // Execute the INSERT
+    $dbObj->executeSelectQuery($con, $sql);
+    error_log("Called execSelect", 0);
+
+    // If we have a row, the email/password are good
+    if (isset($_SESSION['count']) && $_SESSION['count']) {
+        $_SESSION['message'] = 'Welcome ' . $localEmail;
+        $_SESSION['loggedUser'] = $localEmail;
+        error_log("Return to index.php -> " . $_SESSION['message'], 0);
+        header("Location: index.php");
+    } else {
+        $_SESSION['message'] = 'Login failed. Invalid email address or password';
+        error_log("Return to login.php -> " . $_SESSION['message'], 0);
+        header("Location: login.php");
+    }
+
+} else {
+    $_SESSION['message'] = 'loginUserValidation not called from login';
+}
+
+?>
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: logout.php
+*/
+    session_start();
+    session_unset(); // Clear entire session
+    error_reporting(E_ALL ^ E_NOTICE); 
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU Class Registration Logout Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+
+<!--
+       This is the assignment
+       Just return for right now
+-->
+<div class="container text-center">
+    <h3>RozU Class Registration Logout Page</h3>
+    <br/>
+    <br/>
+    <p>You are now logged out</p>
+</div>
+
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="./index.php">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Custom class to handle MySQL I/O
+* 
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: mySqlIO.class.php
+* 
+*/
+class mySqlIO {
+    protected $pdo;
+    protected $result;
+    // Constructor takes dbname, user, password, and establishes the connection
+    public function __construct($arg1, $arg2, $arg3) {
+        try {
+            $connString = "mysql:host=" . $arg1 . ";dbname=classRegister";
+            $user = $arg2;
+            $pass = $arg3;
+            $this->pdo = new PDO($connString,$user,$pass);
+            $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+    }
+    // Get the connection handle
+    public function getConnection() {
+        return $this->pdo;
+    }
+    // Get the result handle
+    public function getResult() {
+        return $this->result;
+    }
+    // Takes the connection handle and the SQL to execute
+    public function executeSelectQuery($con, $sql) {
+        try {
+            error_log("Exec SQL = " . $sql, 0);
+            $result = $con->query($sql);
+
+            // Return next row as an array indexed by both column name and number
+            $dataArray = $result->fetch();
+
+            // Count the number of columns in the result set
+            $colCount = $result->columnCount();
+            $_SESSION['cols'] = $colCount;
+
+            // Return number of rows
+            $rowCount = $result->rowCount();
+
+            error_log("Session[count] = " . $rowCount, 0);
+            $_SESSION['count'] = $rowCount;
+
+            if ($rowCount > 0 && $rowCount < 2) {
+                $colNum = 0;
+                while ($colNum < $colCount) {
+                    $sessColName = 'col' . $colNum;
+                    $_SESSION[$sessColName] = $dataArray[$colNum];
+                    $colNum++;
+                }
+            }
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+    }
+    // Takes the connection handle and the SQL to execute
+    public function executeExec($con, $sql) {
+        try {
+            $result = $con->exec($sql);
+
+            // Return number of rows
+//            $rowCount = $result->rowCount();
+
+            error_log("executeExec[sql] successful = " . $sql, 0);
+
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+    }
+    public function executeQuery($con, $sql) {
+        try {
+            $this->result = $con->query($sql);
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+    }
+    // Takes the connection handle and the SQL to execute
+    public function executeBuildTable($con, $sql) {
+        try {
+            error_log("Exec SQL = " . $sql, 0);
+            $result = $con->query($sql);
+
+            // Count the number of columns in the result set
+            $colCount = $result->columnCount();
+            // Return number of rows
+            $rowCount = $result->rowCount();
+
+            while ($rowCount > 0) {
+                // Return next row as an array indexed by both column name and number
+                $dataArray = $result->fetch();
+
+                echo "<tr>";
+                $colNum = 0;
+                while ($colNum < $colCount) {
+//                    $sessColName = 'col' . $colNum;
+//                    $_SESSION[$sessColName] = $dataArray[$colNum];
+                    echo "<td>" . $dataArray[$colNum] . "</td>";
+                    $colNum++;
+                }
+                echo "</tr>";
+
+                $rowCount--;
+            }
+
+        } catch (PDOException $e) {
+            die($e->getMessage());
+        }
+    }
+}
+
+?>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: profile.php
+*/
+    session_start();
+    error_reporting(E_ALL ^ E_NOTICE); 
+
+    // Include the SQL DB class
+    require_once 'mySqlIO.class.php';
+
+    error_log("profile - Session user id is -> " . $_SESSION['loggedUser'], 0);
+
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU Class Registration Profile Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+
+<body>
+
+<?php
+    // Logic to read the currently logged in user and display their profile
+
+     // Constants
+     define("HOST_NAME", "localhost");
+     define("DB_USER", "myUser");
+     define("DB_PASS", "myPass@CST499!");
+
+     // Get data into local variables
+     $localEmail = $_SESSION['loggedUser'];
+
+     // Connect to the DB
+     $dbObj = new mySqlIO(HOST_NAME, DB_USER, DB_PASS);
+     error_log("profile - Called mySqlIO", 0);
+
+     // Get the connection handle
+     $con = $dbObj->getConnection();
+     error_log("profile - Called getConn", 0);
+
+     // Build the INSERT
+     $sql = "SELECT password,firstName,lastName,address,phone,SSN FROM classRegister.tblUser WHERE email = '" . $localEmail . "';";
+
+     // Execute the INSERT
+     $dbObj->executeSelectQuery($con, $sql);
+     error_log("profile - Called execSelect", 0);
+
+     // If we have a row, the email/password are good
+     if (isset($_SESSION['count']) && $_SESSION['count']) {
+         error_log("profile - Return to profile.php and show user profile", 0);
+     } else {
+         $_SESSION['message'] = 'Login failed. Invalid email address or password';
+         error_log("profile - Return error message to profile.php", 0);
+     }
+
+?>
+<div class="container text-center">
+    <h3>Current logged in RozU Class Registration Profile</h3>
+</div>
+<table border="1" frame="void" rules="rows">
+    <tr>
+        <td>Email id : </td>
+        <td><?php echo $localEmail; ?></td>
+    </tr>
+    <tr>
+        <td>Password : </td>
+        <td><?php echo $_SESSION['col0']; ?></td>
+    </tr>
+    <tr>
+        <td>First name : </td>
+        <td><?php echo $_SESSION['col1']; ?></td>
+    </tr>
+    <tr>
+        <td>Last name : </td>
+        <td><?php echo $_SESSION['col2']; ?></td>
+    </tr>
+    <tr>
+        <td>Address : </td>
+        <td><?php echo $_SESSION['col3']; ?></td>
+    </tr>
+    <tr>
+        <td>Phone : </td>
+        <td><?php echo $_SESSION['col4']; ?></td>
+    </tr>
+    <tr>
+        <td>SSN : </td>
+        <td><?php echo $_SESSION['col5']; ?></td>
+    </tr>
+</table>
+<nav class="navbar navbar-default">
+    </br>
+    </br>
+    </br>
+    <div class="container-fluid">
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="./index.php">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: register.php
+*/
+      error_reporting(E_ALL ^ E_NOTICE); 
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU User Register Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body>
+<!--
+       This is the assignment
+       Just return for right now
+-->
+<div class="container text-center">
+    <h3>RozU Class Registration Page</h3>
+</div>
+
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="./index.php">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<form class="registerInputFields" action="registerAdd.php" method="post">
+    <div>
+        <label for="id">User id: *</label>
+        <input type="text" name="id" required><br/>
+    </div>
+    <div>
+        <label for="password">Password: *</label>
+        <input type="text" name="password" required><br/>
+    </div>
+    <div>
+        <label for="confPassword">Confirm: *</label>
+        <input type="text" name="confirm" required><br/><br/>
+    </div>
+    <div>
+        <label for="firstName">First Name: *</label>
+        <input type="text" name="firstName" required><br/>
+    </div>
+    <div>
+        <label for="lastName">Last Name: *</label>
+        <input type="text" name="lastName" required><br/>
+    </div>
+    <div>
+        <label for="address">Home Address: *</label>
+        <input type="text" name="address" required><br/>
+    </div>
+    <div>
+        <label for="phone">Phone number: *</label>
+        <input type="text" name="phone" required><br/>
+    </div>
+    <div>
+        <label for="email">eMail Address: *</label>
+        <input type="text" name="email" required><br/>
+    </div>
+    <div>
+        <label for="SSN">Social Security Number: *</label>
+        <input type="text" name="SSN" required><br/>
+    </div>
+    <br/><label>* = Required field</label><br/><br/>
+
+    <button type="Submit" name="registerUser">Add user</button>
+</form>
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: registerAdd.php
+*/
+
+      // Include the SQL DB class
+      require_once 'mySqlIO.class.php';
+      
+      // Constants
+      define("HOST_NAME", "localhost");
+      define("DB_USER", "myUser");
+      define("DB_PASS", "myPass@CST499!");
+
+      // Get data into local variables
+      $localId = $_POST['id'];
+      $localPassword = $_POST['password'];
+      $localConfirm = $_POST['confirm'];
+      $localFirstName = $_POST['firstName'];
+      $localLastName = $_POST['lastName'];
+      $localAddress = $_POST['address'];
+      $localPhone = $_POST['phone'];
+      $localEmail = $_POST['email'];
+      $localSSN = $_POST['SSN'];
+
+      // Connect to the DB
+      $dbObj = new mySqlIO(HOST_NAME, DB_USER, DB_PASS);
+
+      // Get the connection handle
+      $con = $dbObj->getConnection();
+
+      // Build the INSERT
+      $sql = "INSERT INTO classRegister.tblUser (id,password,firstName,lastName,address,
+          phone,email,SSN) VALUES('" . $localId . "','" . $localPassword . "','" . 
+          $localFirstName . "','" . $localLastName . "','" . $localAddress . "','" . $localPhone . 
+          "','" . $localEmail . "','" . $localSSN . "');";
+
+      // Execute the INSERT
+      $dbObj->executeQuery($con, $sql);
+
+      // Free the resources and connection
+      $dbObj = NULL;
+      
+            
+      header("Location: index.php");
+?>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+<?php
+/*
+*   Written by Mitchell Rozonkiewiecz
+*    
+*   For UAGC CST 499 Capstone class betweeen Oct 1, 2024 and Nov 4, 2024
+*
+*   File: userClasses.php
+*/
+    session_start();
+    error_reporting(E_ALL ^ E_NOTICE); 
+
+    // Include the SQL DB class
+    require_once 'mySqlIO.class.php';
+
+    error_log("profile - Session user id is -> " . $_SESSION['loggedUser'], 0);
+
+?>
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RozU User Registered Classes Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style type="text/css">
+        table {
+            margin: 8px;
+        }
+        th {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: .7em;
+            background: #666;
+            color: #FFF;
+            padding: 4px 10px;
+            border-collapse: separate;
+            border: 2px solid #000;
+        }
+        td {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: .7em;
+            padding: 4px 10px;
+            border: 2px solid #000;
+        }
+    </style>
+</head>
+
+<body>
+
+<?php
+    // Logic to read the currently logged in user and display their profile
+
+     // Constants
+     define("HOST_NAME", "localhost");
+     define("DB_USER", "myUser");
+     define("DB_PASS", "myPass@CST499!");
+
+     // Get data into local variables
+     $localEmail = $_SESSION['loggedUser'];
+
+     // Connect to the DB
+     $dbObj = new mySqlIO(HOST_NAME, DB_USER, DB_PASS);
+     error_log("profile - Called mySqlIO", 0);
+
+     // Get the connection handle
+     $con = $dbObj->getConnection();
+     error_log("profile - Called getConn", 0);
+
+     // Build the INSERT
+     $sql = "SELECT id,firstName,lastName FROM classRegister.tblUser WHERE email = '" . $localEmail . "';";
+
+     // Execute the INSERT
+     $dbObj->executeSelectQuery($con, $sql);
+     error_log("profile - Called execSelect", 0);
+
+     $sqlRegistered =         
+"SELECT s4.courseId, s4.courseName, s5.teacherName, s3.uniqueKeyId
+FROM (SELECT id, firstName, lastName FROM tblUser where id = '" . $_SESSION['col0'] . "') AS S1
+JOIN (SELECT tblUserId, tblClassesOfferedUniqueKeyId FROM tblUserRegisteredClasses) AS S2
+JOIN (SELECT uniqueKeyId, tblCOcourseId, tblCOteacherId FROM tblCoursesOffered) AS S3
+JOIN (SELECT courseId, courseName FROM tblCourse) AS S4
+JOIN (SELECT teacherId, teacherName FROM tblTeacher) AS S5
+ON s1.id = s2.tbluserid AND s2.tblClassesOfferedUniqueKeyId = s3.uniqueKeyId AND s3.tblCOcourseId = s4.courseId AND s3.tblCOteacherId = s5.teacherid;";
+
+     // Execute the INSERT
+     $dbObj->executeQuery($con, $sqlRegistered);
+     error_log("profile - Called execQuery", 0);
+
+     // If we have a row, the email/password are good
+     if (isset($_SESSION['count']) && $_SESSION['count']) {
+         error_log("profile - Return to profile.php and show user profile", 0);
+     } else {
+         $_SESSION['message'] = 'Login failed. Invalid email address or password';
+         error_log("profile - Return error message to profile.php", 0);
+     }
+
+?>
+<div class="container text-center">
+    <h3>Currently logged in User Registered Classes Page</h3>
+</div>
+<table border="1" frame="void" rules="rows">
+    <tr>
+        <td>Id : </td>
+        <td><?php echo $_SESSION['col0']; ?></td>
+    </tr>
+    <tr>
+        <td>Email id : </td>
+        <td><?php echo $localEmail; ?></td>
+    </tr>
+    <tr>
+        <td>First name : </td>
+        <td><?php echo $_SESSION['col1']; ?></td>
+    </tr>
+    <tr>
+        <td>Last name : </td>
+        <td><?php echo $_SESSION['col2']; ?></td>
+    </tr>
+</table>
+
+<table>
+    </br>
+    </br>
+    <tr>
+        <th>--- Course Id ---</th>
+        <th>--- Course Name ---</th>
+        <th>--- Teacher Name ---</th>
+    </tr>
+<?php
+      // Logic to read the user registered classes
+
+      // Get the connection handle
+      $res = $dbObj->getResult();
+      error_log("profile - Called getResult", 0);
+
+      // Count the number of columns in the result set
+      $colCount = $res->columnCount();
+      // Return number of rows
+      $rowCount = $res->rowCount();
+
+      if ($rowCount < 1) {
+          echo "<tr>";
+          echo "<td>None registered</td>";
+          echo "</tr>";
+      } else {
+          while ($rowCount > 0) {
+              echo "<tr>";
+
+              // Return next row as an array indexed by both column name and number
+              $dataArray = $res->fetch();
+              $colNum = 0;
+              $courseId = $dataArray[3];
+              while ($colNum < ($colCount-1)) {
+                  if ($colNum==0) {
+                      echo "<td><a href=\"./delme.php?cid=" . $courseId . "\">" . $dataArray[$colNum] . "</a></td>";
+                      error_log("<td><a href=\"./addme.php?cid=" . $courseId . "\">" . $dataArray[$colNum] . "</a></td>", 0);
+                  } else {
+                      echo "<td>" . $dataArray[$colNum] . "</td>";
+                      error_log("<td>" . $dataArray[$colNum] . "</td>", 0);
+                  }
+                  $colNum++;
+              }
+              echo "</tr>";
+              $rowCount--;
+          }
+      }
+?>
+</table>
+
+<nav class="navbar navbar-default">
+    </br>
+    </br>
+    </br>
+    <div class="container-fluid">
+        <div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="./index.php">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="navbar-fixed-bottom row-fluid">
+    <div class="navbar-inner">
+        <div class="container text-center">
+            <h4>Copyright @2024 Roz Consulting, Inc.</h4>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+</script>
+</body>
+</html>
+
++ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
